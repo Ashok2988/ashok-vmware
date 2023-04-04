@@ -91,7 +91,7 @@ def main():
        for vm in res:
            print("updating vm net for  %s to %s" %(vm,args.dstnet))
            client.vcenter.vm.hardware.Ethernet.update(vm,res[vm]["nic_summary"],res[vm]["nic_update_spec"])
-       print(res)
+    
 
     Disconnect(si)
 
