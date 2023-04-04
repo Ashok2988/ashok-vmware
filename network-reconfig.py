@@ -22,23 +22,23 @@ def parallel_exec(nothreads,vm_dict,dnet,creds):
             if len(vml)>0:
 
                 tdict={x:vm_dict[x] for x in vml}
-                t = Thread(target=execute, args=(tdict,dnet,creds))
+                session=requests.session()
+                session.verify = False
+                client = create_vsphere_client(server=creds['vc'],
+                                        username=creds['user'],
+                                        password=creds['pwd'],
+                                           session=session)
+                t = Thread(target=execute, args=(tdict,dnet,client))
                 threads.append(t)
 
             else:
                 break
         return threads
 
-def execute(tdict,dnet,creds):
-    with requests.session() as session:
-        session.verify = False
-        client = create_vsphere_client(server=creds['vc'],
-                                        username=creds['user'],
-                                        password=creds['pwd'],
-                                           session=session)
-        for vm in tdict:
-            print("updating vm net for  %s to %s" %(vm,dnet))
-            client.vcenter.vm.hardware.Ethernet.update(vm,tdict[vm]["nic_summary"],tdict[vm]["nic_update_spec"])
+def execute(tdict,dnet,client):
+    for vm in tdict:
+       print("updating vm net for  %s to %s" %(vm,dnet))
+       client.vcenter.vm.hardware.Ethernet.update(vm,tdict[vm]["nic_summary"],tdict[vm]["nic_update_spec"])
 
 def main():
 
