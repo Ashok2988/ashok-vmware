@@ -5,12 +5,40 @@ from vmware.vapi.vsphere.client import create_vsphere_client
 from com.vmware.vcenter_client import Network
 from com.vmware.vcenter.vm.hardware_client import Ethernet
 from samples.vsphere.vcenter.helper import network_helper
+from threading import Thread
 import urllib3
 
 urllib3.disable_warnings()
 import argparse
 import requests
 
+
+def parallel_exec(nothreads,vm_dict,dnet,creds):
+        threads=[]
+        vms=list(vm_dict.keys())
+        for i in range(nothreads):
+            vml=vms[i::nothreads]
+            if len(vml)>0:
+
+                tdict={x:vm_dict[x] for x in vml}
+                t = Thread(target=execute, args=(tdict,dnet,creds))
+                threads.append(t)
+
+            else:
+                break
+        return threads
+
+def execute(tdict,dnet,creds):
+    session = requests.session()
+    session.verify = False
+
+    client = create_vsphere_client(server=creds['vc'],
+                                        username=creds['user'],
+                                        password=creds['pwd'],
+                                        session=session)
+    for vm in tdict:
+        print("updating vm net for  %s to %s" %(vm,dnet))
+        client.vcenter.vm.hardware.Ethernet.update(vm,tdict[vm]["nic_summary"],tdict[vm]["nic_update_spec"])
 
 def main():
 
@@ -83,19 +111,17 @@ def main():
                     break
 
     inp = ''
-
+    creds={'vc':args.vcip,'user': args.vcuser,'pwd': args.vcpwd }
+    threads=parallel_exec(20,res,args.dstnet,creds)
     while inp!='yes':
         inp = input("pls type 'yes' if gw migration is done:")
     if inp=='yes':
+         [thread.start() for thread in threads]
+         [thread.join() for thread in threads]
 
-       for vm in res:
-           print("updating vm net for  %s to %s" %(vm,args.dstnet))
-           client.vcenter.vm.hardware.Ethernet.update(vm,res[vm]["nic_summary"],res[vm]["nic_update_spec"])
-    
 
     Disconnect(si)
 
 
 if __name__ == '__main__':
     main()
-
