@@ -112,7 +112,7 @@ def main():
         creds={'vc':args.vcip,'user': args.vcuser,'pwd': args.vcpwd }
         threads=parallel_exec(20,res,args.dstnet,creds)
         while inp!='yes':
-            inp = input("pls type 'yes' if gw migration is done:")
+            inp = input("please type 'yes' if gw migration is done:")
         if inp=='yes':
             [thread.start() for thread in threads]
             [thread.join() for thread in threads]
