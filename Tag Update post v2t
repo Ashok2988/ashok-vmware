@@ -31,7 +31,6 @@ class TagUpdate(object):
          url = "https://%s/policy/api/v1/infra/tier-1s/%s/gateway-firewall" % (self.nm, tier)
     resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
     payload=json.loads(resp.content)
-    a=set()
     for v in payload['results']:
        for i in v['rules'][0]['services']:
            if i!='ANY':
