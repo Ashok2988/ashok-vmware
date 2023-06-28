@@ -1,0 +1,94 @@
+import time
+import requests
+import json
+import argparse
+import getpass
+requests.packages.urllib3.disable_warnings()
+
+class TagUpdate(object):
+ def __init__(self,nm,nu,np):
+    self.nm=nm
+    self.nu=nu
+    self.np=np
+    self.auth = (nu, np)
+    self.headers={'content-type': 'application/json'}
+    self.ver=False
+    self.authenticate()
+
+ def authenticate(self):
+   url="https://%s/api/v1/transport-zones" % (self.nm)
+   resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
+   if not resp.ok:
+      print("Auth failed, Please check creds")
+   else:
+      self.ver=True
+
+ def get_edge_fw_rule(self,tier,tag,scope,t0):
+    if t0=='yes':
+
+         url = "https://%s/policy/api/v1/infra/tier-0s/%s/gateway-firewall" % (self.nm, tier)
+    else:
+         url = "https://%s/policy/api/v1/infra/tier-1s/%s/gateway-firewall" % (self.nm, tier)
+    resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
+    payload=json.loads(resp.content)
+    a=set()
+    for v in payload['results']:
+       for i in v['rules'][0]['services']:
+           if i!='ANY':
+            ser=i.split('/')[-1]
+            url = "https://%s/policy/api/v1/infra/services/%s" % (self.nm, ser)
+            resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
+            payload=json.loads(resp.content)
+            if 'tags' in payload.keys():
+                if payload['tags'][0]['scope']=='v_origin':
+                    payload['tags'][0]['scope']=scope
+                    payload['tags'][0]['tag']=tag
+                    resp = requests.patch(url, auth=self.auth, headers=self.headers, data=json.dumps(payload), verify=False)
+                    if resp.ok:
+                       print("tag update ok for service %s" %ser)
+                    else:
+                        print("tag update failed for service %s" %ser)
+
+
+
+def get_parse_arguments():
+    parser = argparse.ArgumentParser(description='T1 EC update script')
+    parser.add_argument('--nsxip',
+                        help='nsx manager ip',
+                        required=True, default=False)
+    parser.add_argument('--nsxuser',
+                        help='nsx username',
+                        required=True, default=False)
+    parser.add_argument('--nsxpwd',
+                        help='nsx password',
+                         default=False),
+    parser.add_argument('--gwname',
+                        help='t1gw policy name',
+                        default=False),
+    parser.add_argument('--newtag',
+                        help='new tag name',
+                         default=False),
+    parser.add_argument('--newscope',
+                        help='new scope name',
+                         default=False),
+    parser.add_argument('--tier0',
+                        help='is it tier0?',
+                         default='no')
+    return parser.parse_args()
+
+
+if __name__ == '__main__':
+    args=get_parse_arguments()
+    if not args.nsxpwd:
+       nsxpwd = getpass.getpass("NSX Manager password: ")
+    else:
+       nsxpwd=args.nsxpwd
+    nm = args.nsxip
+    nu = args.nsxuser
+    np = nsxpwd
+    tier = args.gwname
+    tag=args.newtag
+    scope=args.newscope
+    obj=TagUpdate(nm,nu,np)
+    if  obj.ver:
+        obj.get_edge_fw_rule(tier,tag,scope,args.tier0)
