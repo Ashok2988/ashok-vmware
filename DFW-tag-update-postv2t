@@ -28,7 +28,6 @@ class TagUpdate(object):
     url = "https://%s/policy/api/v1/infra/domains/default/security-policies" % (self.nm)
     resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
     payload=json.loads(resp.content)
-#    print(payload)
     for i in payload['results']:
        url="https://%s/policy/api/v1/infra/domains/default/security-policies/%s/rules" %(self.nm,i['id'])
        resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
