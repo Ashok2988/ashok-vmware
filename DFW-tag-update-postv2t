@@ -1,0 +1,88 @@
+import time
+import requests
+import json
+import argparse
+import getpass
+requests.packages.urllib3.disable_warnings()
+
+class TagUpdate(object):
+ def __init__(self,nm,nu,np):
+    self.nm=nm
+    self.nu=nu
+    self.np=np
+    self.auth = (nu, np)
+    self.headers={'content-type': 'application/json'}
+    self.ver=False
+    self.authenticate()
+
+ def authenticate(self):
+   url="https://%s/api/v1/transport-zones" % (self.nm)
+   resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
+   if not resp.ok:
+      print("Auth failed, Please check creds")
+   else:
+      self.ver=True
+
+ def get_dfw_rule(self,tag,scope):
+    
+    url = "https://%s/policy/api/v1/infra/domains/default/security-policies" % (self.nm)
+    resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
+    payload=json.loads(resp.content)
+#    print(payload)
+    for i in payload['results']:
+       url="https://%s/policy/api/v1/infra/domains/default/security-policies/%s/rules" %(self.nm,i['id'])
+       resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
+       payload=json.loads(resp.content)
+       for v in payload['results']:
+         for j in v['services']:
+           if j!='ANY':
+            ser=j.split('/')[-1]
+            url = "https://%s/policy/api/v1/infra/services/%s" % (self.nm, ser)
+            resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
+            payload=json.loads(resp.content)
+            if 'tags' in payload.keys():
+                if payload['tags'][0]['scope']=='v_origin':
+                    payload['tags'][0]['scope']=scope
+                    payload['tags'][0]['tag']=tag
+                    resp = requests.patch(url, auth=self.auth, headers=self.headers, data=json.dumps(payload), verify=False)
+                    if resp.ok:
+                       print("tag update ok for service %s" %ser)
+                    else:
+                        print("tag update failed for service %s" %ser)
+
+
+
+def get_parse_arguments():
+    parser = argparse.ArgumentParser(description='Tag update script')
+    parser.add_argument('--nsxip',
+                        help='nsx manager ip',
+                        required=True, default=False)
+    parser.add_argument('--nsxuser',
+                        help='nsx username',
+                        required=True, default=False)
+    parser.add_argument('--nsxpwd',
+                        help='nsx password',
+                         default=False),
+    parser.add_argument('--newtag',
+                        help='new tag name',
+                         default=False),
+    parser.add_argument('--newscope',
+                        help='new scope name',
+                         default=False)
+    return parser.parse_args()
+
+
+if __name__ == '__main__':
+    args=get_parse_arguments()
+    if not args.nsxpwd:
+       nsxpwd = getpass.getpass("NSX Manager password: ")
+    else:
+       nsxpwd=args.nsxpwd
+    nm = args.nsxip
+    nu = args.nsxuser
+    np = nsxpwd
+    tag=args.newtag
+    scope=args.newscope
+    obj=TagUpdate(nm,nu,np)
+    if  obj.ver:
+        obj.get_dfw_rule(tag,scope)
