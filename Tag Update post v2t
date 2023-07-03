@@ -51,7 +51,7 @@ class TagUpdate(object):
 
 
 def get_parse_arguments():
-    parser = argparse.ArgumentParser(description='T1 EC update script')
+    parser = argparse.ArgumentParser(description='Tag update script')
     parser.add_argument('--nsxip',
                         help='nsx manager ip',
                         required=True, default=False)
