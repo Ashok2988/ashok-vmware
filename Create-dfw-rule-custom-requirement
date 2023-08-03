@@ -107,4 +107,7 @@ if __name__ == '__main__':
     pr= args.prefix
     obj=TagUpdate(nm,nu,np)
     if  obj.ver:
-        obj.create_rule(sn,pr)
+        with open("seg", "r") as f:
+          data=f.readlines()
+          for i in data:
+               obj.create_rule(i.strip(),pr)
