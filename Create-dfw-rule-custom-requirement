@@ -23,7 +23,7 @@ class TagUpdate(object):
    else:
       self.ver=True
 
- def create_rule(self,segname,prefix):
+ def create_rule(self,segname,prefix,sn):
      try:
         url="https://%s/policy/api/v1/infra/segments/%s" % (self.nm,segname)
         resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
@@ -59,7 +59,7 @@ class TagUpdate(object):
         url="https://%s/policy/api/v1/infra/domains/default/groups/%s" % (self.nm,prefix+'_grp-ips-'+segname)
         resp=requests.patch(url, auth=self.auth, headers=self.headers,data=json.dumps(d), verify=False)
         resp.raise_for_status()
-        url="https://%s/policy/api/v1/infra/domains/default/security-policies/new/rules/%s" %(self.nm,prefix+'dfw-seg2icmp-'+segname)
+        url="https://%s/policy/api/v1/infra/domains/default/security-policies/%s/rules/%s" %(self.nm,sn,prefix+'dfw-seg2icmp-'+segname)
         d={
          "display_name": prefix+'dfw-seg2icmp-'+segname,
          "source_groups": [
@@ -117,4 +117,4 @@ if __name__ == '__main__':
         with open("seg", "r") as f:
           data=f.readlines()
           for i in data:
-               obj.create_rule(i.strip(),pr)
+               obj.create_rule(i.strip(),pr,sn)
