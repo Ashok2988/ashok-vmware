@@ -4,7 +4,7 @@ import json
 import argparse
 import getpass
 requests.packages.urllib3.disable_warnings()
-
+​
 class TagUpdate(object):
  def __init__(self,nm,nu,np):
     self.nm=nm
@@ -14,7 +14,7 @@ class TagUpdate(object):
     self.headers={'content-type': 'application/json'}
     self.ver=False
     self.authenticate()
-
+​
  def authenticate(self):
    url="https://%s/api/v1/transport-zones" % (self.nm)
    resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
@@ -22,7 +22,7 @@ class TagUpdate(object):
       print("Auth failed, Please check creds")
    else:
       self.ver=True
-
+​
  def create_rule(self,segname,prefix,sn):
      try:
         url="https://%s/policy/api/v1/infra/segments/%s" % (self.nm,segname)
@@ -40,7 +40,7 @@ class TagUpdate(object):
         }
         ],
         "display_name": prefix+'_grp-nsm-'+segname,
-        "tags": [{'scope': 'test','tag':'test'}] ,
+        "tags": [{'scope': 'env','tag':'cus'},{'scope': 'c001','tag':'tenant'}] ,
         "_revision":0
         }
         resp=requests.patch(url, auth=self.auth, headers=self.headers,data=json.dumps(d), verify=False)
@@ -53,15 +53,15 @@ class TagUpdate(object):
         }
         ],
         "display_name": prefix+'_grp-ips-'+segname,
-        "tags": [{'scope': 'test','tag':'test'}] ,
+        "tags": [{'scope': 'env','tag':'cus'},{'scope': 'c001','tag':'tenant'}] ,
         "_revision":0
         }
         url="https://%s/policy/api/v1/infra/domains/default/groups/%s" % (self.nm,prefix+'_grp-ips-'+segname)
         resp=requests.patch(url, auth=self.auth, headers=self.headers,data=json.dumps(d), verify=False)
         resp.raise_for_status()
-        url="https://%s/policy/api/v1/infra/domains/default/security-policies/%s/rules/%s" %(self.nm,sn,prefix+'dfw-seg2icmp-'+segname)
+        url="https://%s/policy/api/v1/infra/domains/default/security-policies/%s/rules/%s" %(self.nm,sn,prefix+'_dfw-seg2icmp-'+segname)
         d={
-         "display_name": prefix+'dfw-seg2icmp-'+segname,
+         "display_name": prefix+'_dfw-seg2icmp-'+segname,
          "source_groups": [
          "/infra/domains/default/groups/%s_grp-nsm-%s" %(prefix,segname)
           ],
@@ -76,10 +76,11 @@ class TagUpdate(object):
         }
         resp=requests.patch(url, auth=self.auth, headers=self.headers,data=json.dumps(d), verify=False)
         resp.raise_for_status()
-
-
+        print("DFW rule created for segment %s" %segname)  
+​
+​
      except Exception as e:
-             print(e)
+             print("segment name %s error %s" %(segname,e))
 def get_parse_arguments():
     parser = argparse.ArgumentParser(description='Tag update script')
     parser.add_argument('--nsxip',
@@ -97,10 +98,10 @@ def get_parse_arguments():
     parser.add_argument('--prefix',
                         help='prefix',
                         required=True, default=False)
-
+​
     return parser.parse_args()
-
-
+​
+​
 if __name__ == '__main__':
     args=get_parse_arguments()
     if not args.nsxpwd:
