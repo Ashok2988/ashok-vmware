@@ -1,3 +1,6 @@
+"""
+Author: ashokb@vmware.com
+"""
 from pyVmomi import vim
 from pyVim.connect import SmartConnectNoSSL, Disconnect
 from collections import defaultdict
