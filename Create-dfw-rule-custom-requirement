@@ -1,10 +1,15 @@
+"""
+
+Usage: ex: python test.py  --nsxip 71.209.29.241 --nsxuser admin --dfwsecname test --prefix c001 --nsxpwd CptWare12345!
+author: ashokb@vmware.com
+
+"""
 import time
 import requests
 import json
 import argparse
 import getpass
 requests.packages.urllib3.disable_warnings()
-​
 class TagUpdate(object):
  def __init__(self,nm,nu,np):
     self.nm=nm
@@ -14,7 +19,6 @@ class TagUpdate(object):
     self.headers={'content-type': 'application/json'}
     self.ver=False
     self.authenticate()
-​
  def authenticate(self):
    url="https://%s/api/v1/transport-zones" % (self.nm)
    resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
@@ -22,7 +26,21 @@ class TagUpdate(object):
       print("Auth failed, Please check creds")
    else:
       self.ver=True
-​
+
+ def get_segments(self):
+   try:
+     url="https://%s/policy/api/v1/infra/segments/" % (self.nm)
+     resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
+     resp.raise_for_status()
+     payload=json.loads(resp.content)
+     segments=[]
+     for seg in payload['results']:
+        if 'subnets' in seg.keys():
+           segments.append(seg['id'])
+     return segments
+   except Exception as e:
+        print(e)
+
  def create_rule(self,segname,prefix,sn):
      try:
         url="https://%s/policy/api/v1/infra/segments/%s" % (self.nm,segname)
@@ -76,9 +94,7 @@ class TagUpdate(object):
         }
         resp=requests.patch(url, auth=self.auth, headers=self.headers,data=json.dumps(d), verify=False)
         resp.raise_for_status()
-        print("DFW rule created for segment %s" %segname)  
-​
-​
+        print("DFW rule created for segment %s" %segname)
      except Exception as e:
              print("segment name %s error %s" %(segname,e))
 def get_parse_arguments():
@@ -98,10 +114,7 @@ def get_parse_arguments():
     parser.add_argument('--prefix',
                         help='prefix',
                         required=True, default=False)
-​
     return parser.parse_args()
-​
-​
 if __name__ == '__main__':
     args=get_parse_arguments()
     if not args.nsxpwd:
@@ -115,7 +128,6 @@ if __name__ == '__main__':
     pr= args.prefix
     obj=TagUpdate(nm,nu,np)
     if  obj.ver:
-        with open("seg", "r") as f:
-          data=f.readlines()
-          for i in data:
-               obj.create_rule(i.strip(),pr,sn)
+          seg=obj.get_segments()
+          for s in seg:
+               obj.create_rule(s,pr,sn)
