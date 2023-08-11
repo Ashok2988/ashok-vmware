@@ -76,7 +76,7 @@ def main():
         network = defaultdict(list)
         dvhsmap=defaultdict(set)
         dvhtmap=defaultdict(set)
-
+        vmdict={}
         tnetwork_map=defaultdict(list)
         for net in root_folder.childEntity[0].network:
             if net.name == network_name:
@@ -84,7 +84,9 @@ def main():
                 for i in net.host:
                     dvhsmap[nname].add(i._GetMoId())
                 for vm in net.vm:
+                    na=vm.name
                     vm=vm._GetMoId()
+                    vmdict[vm]=na
                     network[nname].append(vm)
             elif net.name == tnetwork_name:
                 nname=net._GetMoId()
@@ -108,10 +110,13 @@ def main():
                                         backing=Ethernet.BackingSpec(
                                         type=Ethernet.BackingType.DISTRIBUTED_PORTGROUP,
                                         network=distributed_network))
+
                         res[vm]={"nic_summary":nic_summary.nic,"nic_update_spec":nic_update_spec}
+                        print(vmdict[vm],distributed_network)
                         break
 
         inp = ''
+
         creds={'vc':args.vcip,'user': args.vcuser,'pwd': args.vcpwd }
         threads=parallel_exec(20,res,args.dstnet,creds)
         while inp!='yes':
