@@ -86,7 +86,7 @@ class EcMove(object):
      print(lease)
      url = "https://%s/api/v1/dhcp/servers/%s/leases" % (self.nsxtm,sid)
      resp=requests.put(url, auth=self.auth2, headers=self.headers,data=json.dumps(lease), verify=False)
- 
+     print(resp) 
      
 def get_parse_arguments():
     parser = argparse.ArgumentParser(description='T1 EC update script') 
@@ -127,7 +127,10 @@ if __name__ == '__main__':
     t1c = int(args.t1c)
     obj=EcMove(nm,nu,np,ecid,args.nsxtip,args.nsxtpwd)
     if  obj.ver and obj.ver2:
-        leases=obj._get_lease_v("edge-4")
-        c=obj.v2t_mgr_dhcp_leases_body(leases)
-        sid="65396c6a-d4b6-4ca4-9c50-8e63f162ab2a"
-        obj.import_lease_into_t(sid,c)
+      with open('edge-list') as json_file:  
+        d=json.load(json_file)
+        for edge in d:
+           leases=obj._get_lease_v(edge)
+           c=obj.v2t_mgr_dhcp_leases_body(leases)
+           sid=d[edge]
+           obj.import_lease_into_t(sid,c)
