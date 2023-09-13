@@ -60,7 +60,7 @@ class EcMove(object):
         start_time_str = time.strftime("%Y-%m-%d %H:%M:%S +0000",
                                        start_time_struct)
         if v_dhcp_lease['ends'].strip() == "never":
-            lease_time = MAX_LEASE_TIME
+            lease_time = 4294967295
         else:
             end_time = v_dhcp_lease['ends'][2:]
             end_time_struct = time.strptime(end_time, time_format)
