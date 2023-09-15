@@ -7,13 +7,12 @@ import xmltodict
 requests.packages.urllib3.disable_warnings()
 
 class EcMove(object):
- def __init__(self,nm,nu,np,ecid,nsxtm,nsxtp):
+ def __init__(self,nm,nu,np,nsxtm,nsxtp):
     self.nm=nm
     self.nu=nu
     self.np=np
     self.auth = (nu, np) 
     self.headers={'content-type': 'application/json'} 
-    self.ecid=ecid
     self.ver=False
     self.nsxtm=nsxtm
     self.nsxtp=nsxtp
@@ -23,7 +22,7 @@ class EcMove(object):
     self.authenticate()
     
  def authenticate(self):
-   url="https://%s/api/4.0/edges" % (self.nm)
+   url="https://%s/api/v1/transport-zones" % (self.nsxtm)
    resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
    if not resp.ok:
       print("Auth failed, Please check creds")
@@ -37,49 +36,6 @@ class EcMove(object):
    else:
      self.ver2=True
       
- def _get_lease_v(self,edge):
-    
-       url = "https://%s/api/4.0/edges/%s/dhcp/leaseInfo" % (self.nm, edge)
-       resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
-       resp=(xmltodict.parse(resp.content))
-       dhcp_leases_json=json.dumps(resp)
-       dhcp_leases_json=json.loads(dhcp_leases_json)
-       dhcp_leases = dhcp_leases_json['dhcpLeases']['dhcpLeaseInfo'].get('leaseInfo', [])
-       return dhcp_leases
-
- def v2t_mgr_dhcp_lease_body(self,v_dhcp_lease):
-        ip_address = v_dhcp_lease['ipAddress']
-        mac_address = v_dhcp_lease['macAddress']
-        # V uses dhcpd leases in which date format is like
-        # 'weekday year/month/day hour:minute:second' and weekday number is
-        # zero to six, with zero being Sunday. Also lease times are always
-        # specified in UTC, not in the local time zone.
-        start_time = v_dhcp_lease['starts'][2:]
-        time_format = "%Y/%m/%d %H:%M:%S"
-        start_time_struct = time.strptime(start_time, time_format)
-        start_time_str = time.strftime("%Y-%m-%d %H:%M:%S +0000",
-                                       start_time_struct)
-        if v_dhcp_lease['ends'].strip() == "never":
-            lease_time = MAX_LEASE_TIME
-        else:
-            end_time = v_dhcp_lease['ends'][2:]
-            end_time_struct = time.strptime(end_time, time_format)
-            lease_time = (time.mktime(end_time_struct) -
-                          time.mktime(start_time_struct))
-            lease_time = int(lease_time)
-        return {'ip_address': ip_address,
-                'mac_address': mac_address,
-                'start_time': start_time_str,
-                'lease_time': lease_time}
-
- def v2t_mgr_dhcp_leases_body(self,v_leases):
-        t_leases_dict = {'leases': []}
-        # Need to check v lease info
-        t_leases = t_leases_dict['leases']
-        for v_lease in v_leases:
-            t_leases.append(self.v2t_mgr_dhcp_lease_body(v_lease))
-        return t_leases_dict
-
 
  def import_lease_into_t(self,sid,lease):
      lease['dhcp_server_id'] = sid 
@@ -89,63 +45,50 @@ class EcMove(object):
      print(resp.content)
  
  def get_ip_pool(self,sid):
-     url="https://%s/api/v1/dhcp/servers/%s/ip-pools" %(self.nsxtm,sid)
-     resp=requests.get(url, auth=self.auth2, headers=self.headers, verify=False)
+     url="https://%s/api/v1/dhcp/servers/%s/ip-pools" %(self.nm,sid)
+     resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
      payload=json.loads(resp.content)
      pool=payload['results'][0]['id']
      return pool
  def get_temp_nsxt_lease(self,sid,pool):
-     #url="https://%s/api/v1/dhcp/servers/%s/leases?pool_id=%s" %(self.nsxtm,sid,pool)
-    # resp=requests.get(url, auth=self.auth2, headers=self.headers, verify=False)
-    # payload=json.loads(resp.content)
-
-     l= {'dhcp_server_id': '0e5608c1-3560-44da-979b-759198841a6c', 'timestamp': 1694505138314, 'leases': [{'mac_address': '00:50:56:98:1f:d4', 'ip_address': '71.209.27.43', 'subnet': '71.209.27.0', 'start_time': '2023-09-12 03:31:58 +0000', 'lease_time': '86400', 'expire_time': '2023-09-13 03:31:58 +0000'}, {'mac_address': '00:50:56:62:c7:a3', 'ip_address': '71.209.27.30', 'subnet': '71.209.27.0', 'start_time': '2023-09-12 07:34:46 +0000', 'lease_time': '3600', 'expire_time': '2023-09-12 08:34:46 +0000'}, {'mac_address': '00:50:56:66:74:2a', 'ip_address': '71.209.27.32', 'subnet': '71.209.27.0', 'start_time': '2023-09-12 07:34:57 +0000', 'lease_time': '3600', 'expire_time': '2023-09-12 08:34:57 +0000'}, {'mac_address': '00:50:56:6a:a5:b0', 'ip_address': '71.209.27.33', 'subnet': '71.209.27.0', 'start_time': '2023-09-12 07:34:50 +0000', 'lease_time': '3600', 'expire_time': '2023-09-12 08:34:50 +0000'}, {'mac_address': '00:50:56:67:b4:fa', 'ip_address': '71.209.27.34', 'subnet': '71.209.27.0', 'start_time': '2023-09-12 07:35:15 +0000', 'lease_time': '3600', 'expire_time': '2023-09-12 08:35:15 +0000'}, {'mac_address': '00:50:56:6a:d0:38', 'ip_address': '71.209.27.31', 'subnet': '71.209.27.0', 'start_time': '2023-09-12 07:34:49 +0000', 'lease_time': '3600', 'expire_time': '2023-09-12 08:34:49 +0000'}, {'mac_address': '00:50:56:64:3c:bc', 'ip_address': '71.209.27.50', 'subnet': '71.209.27.0', 'start_time': '2023-09-12 07:34:58 +0000', 'lease_time': '3600', 'expire_time': '2023-09-12 08:34:58 +0000'}]}
-     for i in l['leases']:
-        print(i.pop('expire_time'))
-     self.import_lease_into_t("0e5608c1-3560-44da-979b-759198841a6c",l)
+     url="https://%s/api/v1/dhcp/servers/%s/leases?pool_id=%s" %(self.nm,sid,pool)
+     resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
+     payload=json.loads(resp.content)
+     print(payload)
+     for i in payload['leases']:
+        i.pop('expire_time')
+     return payload
 def get_parse_arguments():
-    parser = argparse.ArgumentParser(description='T1 EC update script') 
-    parser.add_argument('--nsxip',
+    parser = argparse.ArgumentParser(description='T-T lease movement') 
+    parser.add_argument('--tmpnsxip',
                         help='nsx manager ip',
                         required=True, default=False)
-    parser.add_argument('--nsxuser',
+    parser.add_argument('--tmpnsxuser',
                         help='nsx username',
                         required=True, default=False)
-    parser.add_argument('--nsxpwd',
+    parser.add_argument('--tmpnsxpwd',
                         help='nsx password',
+                        required=True,    
                          default=False)
-    parser.add_argument('--ecid',
-                        help='edge cluster id',
-                        required=True, default=False)
-    parser.add_argument('--t1c',
-                        help='number of T1s to migrate',
-                        required=True, default=False)
     parser.add_argument('--nsxtip',
                         help='nsxt manager ip',
                         required=True, default=False)
     parser.add_argument('--nsxtpwd',
                         help='nsxt password',
+                         required=True,
                          default=False)
     return parser.parse_args()
 
 
 if __name__ == '__main__':
     args=get_parse_arguments()
-    if not args.nsxpwd:
-       nsxpwd = getpass.getpass("NSX Manager password: ")    
-    else:
-       nsxpwd=args.nsxpwd
-    nm = args.nsxip
-    nu = args.nsxuser
-    np = nsxpwd
-    ecid = args.ecid
-    t1c = int(args.t1c)
-    obj=EcMove(nm,nu,np,ecid,args.nsxtip,args.nsxtpwd)
+    nm = args.tmpnsxip
+    nu = args.tmpnsxuser
+    np = args.tmpnsxpwd
+    obj=EcMove(nm,nu,np,args.nsxtip,args.nsxtpwd)
     if  obj.ver and obj.ver2:
-      #  leases=obj._get_lease_v("edge-4")
-       # c=obj.v2t_mgr_dhcp_leases_body(leases)
-        sid="65396c6a-d4b6-4ca4-9c50-8e63f162ab2a"
-     #   pool=obj.get_ip_pool(sid)
-        obj.get_temp_nsxt_lease(sid,"hi")
-
-       # obj.import_lease_into_t(sid,c)
+       with open('dhcp-list') as json_file:
+          d=json.load(json_file)
+          for sid in d:
+             lease=obj.get_temp_nsxt_lease(sid,obj.get_ip_pool(sid))
+             obj.import_lease_into_t(d[sid],lease)
