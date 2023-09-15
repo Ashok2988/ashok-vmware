@@ -6,7 +6,7 @@ import getpass
 import xmltodict
 requests.packages.urllib3.disable_warnings()
 
-class EcMove(object):
+class LeaseMove(object):
  def __init__(self,nm,nu,np,nsxtm,nsxtp):
     self.nm=nm
     self.nu=nu
@@ -85,7 +85,7 @@ if __name__ == '__main__':
     nm = args.tmpnsxip
     nu = args.tmpnsxuser
     np = args.tmpnsxpwd
-    obj=EcMove(nm,nu,np,args.nsxtip,args.nsxtpwd)
+    obj=LeaseMove(nm,nu,np,args.nsxtip,args.nsxtpwd)
     if  obj.ver and obj.ver2:
        with open('dhcp-list') as json_file:
           d=json.load(json_file)
