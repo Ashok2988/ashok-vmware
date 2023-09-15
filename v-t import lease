@@ -7,7 +7,7 @@ import xmltodict
 requests.packages.urllib3.disable_warnings()
 
 class LeaseMove(object):
- def __init__(self,nm,nu,np,ecid,nsxtm,nsxtp):
+ def __init__(self,nm,nu,np,nsxtm,nsxtp):
     self.nm=nm
     self.nu=nu
     self.np=np
@@ -99,12 +99,6 @@ def get_parse_arguments():
     parser.add_argument('--nsxpwd',
                         help='nsx password',
                          default=False)
-    parser.add_argument('--ecid',
-                        help='edge cluster id',
-                        required=True, default=False)
-    parser.add_argument('--t1c',
-                        help='number of T1s to migrate',
-                        required=True, default=False)
     parser.add_argument('--nsxtip',
                         help='nsxt manager ip',
                         required=True, default=False)
@@ -123,9 +117,7 @@ if __name__ == '__main__':
     nm = args.nsxip
     nu = args.nsxuser
     np = nsxpwd
-    ecid = args.ecid
-    t1c = int(args.t1c)
-    obj=LeaseMove(nm,nu,np,ecid,args.nsxtip,args.nsxtpwd)
+    obj=LeaseMove(nm,nu,np,args.nsxtip,args.nsxtpwd)
     if  obj.ver and obj.ver2:
       with open('edge-list') as json_file:  
         d=json.load(json_file)
