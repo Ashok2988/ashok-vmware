@@ -83,6 +83,7 @@ class LeaseMove(object):
  def import_lease_into_t(self,sid,lease):
      lease['dhcp_server_id'] = sid 
      print(lease)
+     print("importing %d leases" %(len(lease['leases'][0])))
      url = "https://%s/api/v1/dhcp/servers/%s/leases" % (self.nsxtm,sid)
      resp=requests.put(url, auth=self.auth2, headers=self.headers,data=json.dumps(lease), verify=False)
      print(resp) 
