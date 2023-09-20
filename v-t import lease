@@ -13,7 +13,6 @@ class LeaseMove(object):
     self.np=np
     self.auth = (nu, np) 
     self.headers={'content-type': 'application/json'} 
-    self.ecid=ecid
     self.ver=False
     self.nsxtm=nsxtm
     self.nsxtp=nsxtp
