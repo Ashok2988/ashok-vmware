@@ -54,7 +54,7 @@ class LeaseMove(object):
      url="https://%s/api/v1/dhcp/servers/%s/leases?pool_id=%s" %(self.nm,sid,pool)
      resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
      payload=json.loads(resp.content)
-     print(payload)
+    # print(payload)
      for i in payload['leases']:
         i.pop('expire_time')
      return payload
@@ -91,4 +91,5 @@ if __name__ == '__main__':
           d=json.load(json_file)
           for sid in d:
              lease=obj.get_temp_nsxt_lease(sid,obj.get_ip_pool(sid))
+             print("importing %d leases" %len(lease['leases']))
              obj.import_lease_into_t(d[sid],lease)
