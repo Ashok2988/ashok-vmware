@@ -11,16 +11,16 @@ class LeaseMove(object):
     self.nm=nm
     self.nu=nu
     self.np=np
-    self.auth = (nu, np) 
-    self.headers={'content-type': 'application/json'} 
+    self.auth = (nu, np)
+    self.headers={'content-type': 'application/json'}
     self.ver=False
     self.nsxtm=nsxtm
     self.nsxtp=nsxtp
     self.auth2=(nu, nsxtp)
     self.ver2=False
-    self.authenticate_nsxt() 
+    self.authenticate_nsxt()
     self.authenticate()
-    
+
  def authenticate(self):
    url="https://%s/api/4.0/edges" % (self.nm)
    resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
@@ -35,13 +35,14 @@ class LeaseMove(object):
       print("Auth failed, Please check creds")
    else:
      self.ver2=True
-      
+
  def _get_lease_v(self,edge):
-    
+
        url = "https://%s/api/4.0/edges/%s/dhcp/leaseInfo" % (self.nm, edge)
        resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
        resp=(xmltodict.parse(resp.content))
        dhcp_leases_json=json.dumps(resp)
+       print(dhcp_leases_json)
        dhcp_leases_json=json.loads(dhcp_leases_json)
        dhcp_leases = dhcp_leases_json['dhcpLeases']['dhcpLeaseInfo'].get('leaseInfo', [])
        return dhcp_leases
@@ -75,21 +76,28 @@ class LeaseMove(object):
         t_leases_dict = {'leases': []}
         # Need to check v lease info
         t_leases = t_leases_dict['leases']
+        dupcheck={}
         for v_lease in v_leases:
-            t_leases.append(self.v2t_mgr_dhcp_lease_body(v_lease))
+
+            #t_leases.append(self.v2t_mgr_dhcp_lease_body(v_lease))
+             l=self.v2t_mgr_dhcp_lease_body(v_lease)
+             dupcheck[l['ip_address']]=l
+        for i in dupcheck:
+           t_leases.append(dupcheck[i])
+
         return t_leases_dict
 
 
  def import_lease_into_t(self,sid,lease):
-     lease['dhcp_server_id'] = sid 
+     lease['dhcp_server_id'] = sid
      print(lease)
      print("importing %d leases" %(len(lease['leases'])))
      url = "https://%s/api/v1/dhcp/servers/%s/leases" % (self.nsxtm,sid)
      resp=requests.put(url, auth=self.auth2, headers=self.headers,data=json.dumps(lease), verify=False)
-     print(resp) 
-     
+     print(resp)
+
 def get_parse_arguments():
-    parser = argparse.ArgumentParser(description='T1 EC update script') 
+    parser = argparse.ArgumentParser(description='T1 EC update script')
     parser.add_argument('--nsxip',
                         help='nsx manager ip',
                         required=True, default=False)
@@ -111,7 +119,7 @@ def get_parse_arguments():
 if __name__ == '__main__':
     args=get_parse_arguments()
     if not args.nsxpwd:
-       nsxpwd = getpass.getpass("NSX Manager password: ")    
+       nsxpwd = getpass.getpass("NSX Manager password: ")
     else:
        nsxpwd=args.nsxpwd
     nm = args.nsxip
@@ -119,7 +127,7 @@ if __name__ == '__main__':
     np = nsxpwd
     obj=LeaseMove(nm,nu,np,args.nsxtip,args.nsxtpwd)
     if  obj.ver and obj.ver2:
-      with open('edge-list') as json_file:  
+      with open('edge-list') as json_file:
         d=json.load(json_file)
         for edge in d:
            leases=obj._get_lease_v(edge)
