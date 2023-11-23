@@ -18,7 +18,7 @@ class TagUpdate(object):
     self.headers={'content-type': 'application/json'}
     self.ver=False
     self.authenticate()
-
+    self.c=[] 
  def authenticate(self):
    url="https://%s/api/v1/transport-zones" % (self.nm)
    resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
@@ -26,9 +26,44 @@ class TagUpdate(object):
       print("Auth failed, Please check creds")
    else:
       self.ver=True
-
- 
- def create_section(self,bp):
+ def create_vm_tags_nsg(self):
+   url="https://%s/api/v1/fabric/virtual-machines" % (self.nm)  
+   resp=requests.get(url, auth=self.auth, headers=self.headers, verify=False)
+   vm=(resp.json())
+   for i in vm['results']:  
+      if 'tags' in i.keys():
+          continue
+          
+      if i['display_name'].startswith('src'):
+         url="https://%s/api/v1/fabric/virtual-machines?action=add_tags" % (self.nm) 
+         print("processing vm %s" %i['display_name'])
+         d={    "external_id": i['external_id'],
+		"tags": [
+        	{"scope": "test", "tag": i['display_name']}
+                ]}
+         resp=requests.post(url, auth=self.auth, headers=self.headers,data=json.dumps(d), verify=False)
+         resp.raise_for_status()
+         url="https://%s/policy/api/v1/infra/domains/default/groups/%s" %(self.nm,i['display_name'])
+         d={
+         "expression": [
+            {
+        	"member_type": "VirtualMachine",
+        	"value": i['display_name'],
+        	"key": "Tag",
+        	"operator": "EQUALS",
+       	 	"resource_type": "Condition"
+      	    }
+            ],
+           "description": i['display_name'],
+           "display_name": i['display_name'],
+           "_revision":0
+         }
+         resp=requests.patch(url, auth=self.auth, headers=self.headers,data=json.dumps(d), verify=False)
+         resp.raise_for_status()  
+         
+         
+    
+ def create_section(self,bp,iter):
    d={
    "display_name": "new",
    "section_type" : "LAYER3",
@@ -41,35 +76,61 @@ class TagUpdate(object):
    }
    url="https://%s/api/v1/firewall/sections" % (self.nm)
    resp=requests.post(url, auth=self.auth, headers=self.headers,data=json.dumps(d),verify=False)
+   resp.raise_for_status()
    c=resp.json()
-   d= {"sources" : [ {
-    "target_id" : "f2c8eaa3-9978-4158-ae16-6ddee19a4b49",
-    "target_display_name" : "test",
-    "target_type" : "NSGroup",
-    "is_valid" : True
-    } ],
-    "destinations" : [ {
-    "target_id" : "10.172.106.1",
-    "target_display_name" : "10.172.106.1",
-    "target_type" : "IPv4Address",
-    "is_valid" : True
-     } ],
-    "ip_protocol": "IPV4",
-     "logged": False,
-     "action": "ALLOW",
-     "disabled": False,
-     "direction": "IN_OUT",
-      "display_name": "layer3rule1"
-     }
-   url="https://%s/api/v1/firewall/sections/%s/rules" % (self.nm,c['id'])
-   resp=requests.post(url, auth=self.auth, headers=self.headers,data=json.dumps(d),verify=False) 
-   resp.raise_for_status() 
-   
-   
+   for i in [iter,iter-1]: 
+      g='src'+str(i)
+      url="https://%s/policy/api/v1/infra/domains/default/groups/%s" %(self.nm,g)
+      resp=requests.get(url,auth=self.auth, headers=self.headers,verify=False)
+      resp=resp.json()
+            
+      d= {"sources" : [ {
+    	"target_id" : "bcca853d-4003-4609-ab28-3a08596ad6c2",
+    	"target_display_name" : "A1",
+    	"target_type" : "NSGroup",
+    	"is_valid" : True
+    	} ],
+      "destinations" : [ {
+      "target_id" : resp['unique_id'],
+      "target_display_name" : g,
+      "target_type" : "NSGroup",
+      "is_valid" : True
+       } ],
+      "ip_protocol": "IPV4",
+      "logged": False,
+      "action": "ALLOW",
+      "services": [{
+      "target_id":"0b12e2c3-a728-456e-a246-2b722b7b9212",
+       "target_display_name" : "SSH",
+      "target_type" : "NSService",
+      "is_valid" : True
+    }
+         ],
+      "disabled": False,
+      "direction": "IN_OUT",
+       "display_name": "layer3rule1"
+        }
+      url="https://%s/api/v1/firewall/sections/%s/rules" % (self.nm,c['id'])
+      
+      resp=requests.post(url, auth=self.auth, headers=self.headers,data=json.dumps(d),verify=False) 
+      resp.raise_for_status() 
+      self.c.append(resp.json())
+      
      
  def get_bridge_fw_rule(self):
    pass 
-       
+
+ def delete_section(self):
+   f = open('rules.json') 
+   d=json.load(f)
+   visited=set()
+   for i in d:
+     if i['section_id'] in visited:
+        continue
+     url="https://%s/api/v1/firewall/sections/%s?cascade=true" % (self.nm,i['section_id'])
+     resp=requests.delete(url,auth=self.auth, headers=self.headers,verify=False)  
+     visited.add(i['section_id'])
+     resp.raise_for_status() 
 
 
 def get_parse_arguments():
@@ -98,4 +159,10 @@ if __name__ == '__main__':
     np = nsxpwd
     obj=TagUpdate(nm,nu,np)
     if  obj.ver:
-        obj.create_section("eb1ac7b5-5453-4a3e-bd80-4f363a156c00")
+
+       for i in range(2,5,2):
+            #obj.create_vm_tags_nsg()   
+            obj.create_section("6351336b-3c49-4a26-83ee-82cc165624c1",i)
+       with open('rules.json', 'w') as f:
+              json.dump(obj.c, f,indent=4)
+       obj.delete_section()
