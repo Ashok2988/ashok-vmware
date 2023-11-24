@@ -108,7 +108,6 @@ def main():
            network_spec.device = vim.vm.device.VirtualVmxnet3()
            network_spec.device.deviceInfo = vim.Description()
            network_spec.device.deviceInfo.label = 'Network Adapter 1'
-#           network_spec.device.deviceInfo.summary = '
 
            adapter_map = vim.vm.customization.AdapterMapping()
            adapter_map.adapter = vim.vm.customization.IPSettings()
@@ -161,12 +160,7 @@ def main():
                                         network=nn._moId))
            client.vcenter.vm.hardware.Ethernet.update(o,'4000',nic_update_spec)
            task.info.result.PowerOnVM_Task()
-#           new=task.info.result
-#           token=get_session()
-#           token=token.strip#('"')
-#           time.sleep(2)
-#           response=requests.post('https://ashok-vcf-compute-vc.cptroot.com/api/vcenter/vm/%s/hardware/ethernet/4000?action=connect' %new._moId,verify=False, headers={"vmware-api-session-id": "%s" %token})
-#           print(response.text)
+
         Disconnect(si)
 
 
