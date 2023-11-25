@@ -15,16 +15,6 @@ import requests
 import subprocess
 import json
 
-
-def get_session():
-    auth_string = "administrator@vsphere.local:Vmware123!"
-    auth_bytes = auth_string.encode()
-    base64_byte = base64.b64encode(auth_bytes)
-    l=str(base64_byte).strip('b').replace('=','')
-    l=l.strip("'")
-    response=requests.post('https://ashok-vcf-compute-vc.cptroot.com/api/session',verify=False, headers={"Authorization": "Basic %s" %l})
-    return response.text
-
 urllib3.disable_warnings()
 import argparse
 
