@@ -60,8 +60,6 @@ if __name__ == '__main__':
     nm = args.nsxip
     nu = args.nsxuser
     np = nsxpwd
-    #ecid = args.ecid
-    #t1c = int(args.t1c)
     obj=GrpSearch(nm,nu,np)
     if  obj.ver:
        obj.find_grp_by_ip(args.ip)
