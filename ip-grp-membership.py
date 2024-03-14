@@ -28,7 +28,6 @@ class GrpSearch(object):
       self.ver=True
 
  def find_grp_by_ip(self,ip):
-
        url="https://%s/policy/api/v1/infra/ip-address-group-associations?ip_address=%s&enforcement_point_path=/infra/sites/default/enforcement-points/default"  % (self.nm,ip)
        resp = requests.get(url, auth=self.auth, headers=self.headers,verify=False)
        newpayload=(resp.json())
